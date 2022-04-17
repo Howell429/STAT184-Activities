@@ -1,0 +1,71 @@
+---
+title: "Regular Expressions 2"
+author: "Haoyu Lyu"
+date: "4/08/2022"
+output:
+  html_document:
+    df_print: paged
+---
+### Load Packages
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+options(dplyr.summarise.inform = FALSE)
+library(ggplot2)
+```
+
+### Read in Dara
+```{r message=FALSE, warning=FALSE}
+ golfdata <- read.delim("Data_RegEx2.txt",fileEncoding = "UTF-8",header=FALSE, quote="")
+```
+
+### Data Cleaning
+
+```{r message=FALSE, warning=FALSE}
+golfdata2 <- as.data.frame(matrix(golfdata$V1,ncol = 16,byrow = T)) 
+golfdata2 <- rename(golfdata2, Position = "V1",Player = "V2",FinalScore = "V3",THRU = "V4",TODAY = "V5",SGPutt = "V6",SGARG = "V7",SGAPP = "V8",SGOTT = "V9",SGT2G = "V10",SGTOT = "V11",DrDist = "V12",DrAcc = "V13",GIR = "V14",FairProx = "V15",Scrambling = "V16")
+golfdata2 <- filter(golfdata2, Position != "WD")
+golfdata2 <- na_if(golfdata2, "—") 
+golfdata2 <- separate(golfdata2, Player, c("LastName1", "FirstName"), sep = "^\\S*\\K\\s+")
+golfdata2 <- separate(golfdata2, FirstName, c("LastName2", "FirstName"), sep = "^\\S*\\K\\s+")
+golfdata2 <- unite(golfdata2, col =  "FirstName", c('FirstName', 'LastName2'), sep = " ", remove =TRUE, na.rm = TRUE)
+golfdata2 <- separate(golfdata2, FirstName, c("FirstName", "LastName2"), sep = "^\\S*\\K\\s+")
+golfdata2 <- unite(golfdata2, col =  "Player", c('FirstName', 'LastName1','LastName2'), sep = " ", remove =TRUE, na.rm = TRUE)
+head(golfdata2)
+tail(golfdata2)
+```
+
+
+### Data Cleaning 2
+
+```{r message=FALSE, warning=FALSE}
+golfdata2$SGTOT <- as.numeric(golfdata2$SGTOT)
+golfdata2$GIR <- as.numeric(parse_number(golfdata2$GIR))
+golfdata2 <-  mutate(golfdata2, Cut = ifelse(Position == "CUT", "Missed Cut", "Made Cut"))
+head(golfdata2)
+tail(golfdata2)
+```
+
+### Boxplot
+```{r message=FALSE, warning=FALSE}
+ggplot(golfdata2, aes(x=Cut, y=SGTOT,color=Cut)) + 
+  geom_boxplot()+
+  ggtitle("Boxplot Shots Gained Total")+
+  ylab("Shots Gained Total")
+ggplot(golfdata2, aes(x=Cut, y=GIR,color=Cut)) + 
+  geom_boxplot()+
+  ggtitle("Boxplot Greens Hit in Regulation")+
+  ylab("Greens in Regulation")
+```
+
+
+In the boxplot of the total shots gained, we can see the median of the shots hained total for players who made the cut around 1.2 is higher than those hat missed the cut of -1.8. The IQR of both groups looks similar.
+
+In the boxplot of the greens hit in Regulation, we can see that the meadian of it around 68 and the missed around 64. The IQR of two groups are similar. Both of them looks like normal distributed but for the missed group looks like has an outlier.
+
+
+### Github Repo Link
+https://github.com/Howell429/STAT184-Activities
+
+
+

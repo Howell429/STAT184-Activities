@@ -1,0 +1,101 @@
+---
+title: "Regular Expressions 3"
+author: "Haoyu Lyu"
+date: "4/17/2022"
+output:
+  html_document:
+    df_print: paged
+---
+
+### Load Packages and Data
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+options(dplyr.summarise.inform = FALSE)
+id <- read.csv("Data_ReGeX3.csv", header=T)
+```
+
+### Create New variable year Based on First Four Digits of tourny_id
+
+```{r message=FALSE, warning=FALSE}
+id <- mutate(id, year = str_extract(id$tourney_id,"^\\d{4}"))
+head(id)
+tail(id)
+```
+
+### Separate ‘score’ variable into 5 columns based on ‘score’ results
+
+```{r message=FALSE, warning=FALSE}
+id <- mutate(id, score2 = gsub(pattern="\\(\\d+)",replacement="", id$score))
+id <- mutate(id, score3 = gsub(pattern="RET",replacement="", id$score2))
+id <- separate(id, score3, c("Set.1", "Set.2","Set.3","Set.4","Set.5"), sep = " ", remove = FALSE)
+id <- select(id,tourney_id, tourney_name, winner_ioc, winner_age,score,minutes,year,Set.1,Set.2,Set.3,Set.4,Set.5)
+id<- id[c('tourney_id', 'tourney_name', 'winner_ioc', 'winner_age','score','minutes','year',"Set.1", "Set.2","Set.3","Set.4","Set.5")]
+head(id)
+tail(id)
+```
+
+### Create new variable ’sets.played’by counting non-NAs in Set.1 through Set.5
+
+```{r message=FALSE, warning=FALSE}
+id <- id %>% mutate(setsplayed = rowSums(!is.na(select(.,Set.1,Set.2,Set.3,Set.4,Set.5))))
+id <- select(id,tourney_id, tourney_name, winner_ioc, winner_age,score,minutes,year,setsplayed)
+head(id)
+tail(id)
+```
+
+### Create Density Plot of Minutes Played by Number of Sets Played
+
+```{r message=FALSE, warning=FALSE}
+ggplot(id, aes(x=minutes,fill=as.character(setsplayed)))+
+  geom_density(color=NA)+
+  theme(legend.position="top")+
+  labs(fill ="Sets Played",x="Minutes Played",title="Density Plots of Minutes Played Per Number of Sets Played")
+```
+
+This density plot depicts the playing time density as a function of the number of plays. The maximum playing time density for five games is approximately 210 minutes, with a density of approximately 0.124. The higher the density, the longer the end. The densities overlap, but the maximum playing time density decrease from by longer the games.
+
+### Create Boxplot of Winner’s Age by Tournament Name
+
+```{r message=FALSE, warning=FALSE}
+id$tourney_name <- gsub(pattern="Us Open",replacement="US Open", id$tourney_name)
+ggplot(id, aes(x=tourney_name, y=winner_age,color=tourney_name))+
+  labs(y ="Age of Winner",x="Tournament Name",title="Boxplot Age of Winner in Grand Slam Events", color="Tournament Name")+geom_boxplot()
+```
+
+The boxplots give information about age of the winner and the tournament names. There are some outliers on the older.The median age of winner is almost the same aroound 26-27 which means this age is the best age to get the winner.
+
+### Counts of Matches Won by Top 5 IOC Membership per Tournament
+
+```{r message=FALSE, warning=FALSE}
+id2 <- id %>%
+  group_by(tourney_name,winner_ioc) %>%
+  summarise(wins = n())%>%
+  mutate(rank_wins = rank(desc(wins))) %>%
+  filter(rank_wins <= 5)
+ggplot(id2, aes(x=winner_ioc, y=wins))+
+  geom_point()+
+  labs(y ="Tournaments Won",x="Winners Olympic Membership",title="Top 5 Olympic Memberships per Tournament") + 
+  facet_grid(tourney_name ~ .) +
+  theme_bw()
+```
+
+This chart show the top 5 best countries get the winner times. We can see that France and Germany and Espanish get all winner time in 4 big tournaments and France score is the best. UsA didn't get the winner time in Roland Garros.
+
+### Counts of Matches Won by Top 2 IOC Membership per Year
+
+```{r message=FALSE, warning=FALSE}
+id3 <- id %>%
+  group_by(year,winner_ioc) %>%
+  summarise(wins = n())%>%
+  mutate(rank_wins = rank(desc(wins))) %>%
+  filter(rank_wins <= 2)
+ggplot(id3, aes(x=year, y=wins,color=winner_ioc))+
+  geom_point()+
+  labs(y ="Tournaments Won",x="Year",title="Top 2 Olympic Memberships per Year",color="Olympic Membership") + 
+  theme_bw()
+```
+
+This plot chart give us the winnership by top2 IOC membership per year from 2010 to 2018. We can see that Spain and France almost got all the 10 years.Excepted the 2016 and 2018, USA got two winnnership in IOC membership.
+
+Link to github:
